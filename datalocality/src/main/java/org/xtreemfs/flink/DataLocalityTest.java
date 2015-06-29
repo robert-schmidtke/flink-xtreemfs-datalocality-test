@@ -5,8 +5,10 @@ import java.io.PrintWriter;
 import java.util.Random;
 
 import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.tuple.Tuple2;
 
 public class DataLocalityTest {
 
@@ -37,7 +39,7 @@ public class DataLocalityTest {
         }
         writer.close();
 
-        // Use words as input to Flink Job.
+        // Use words as input to Flink wordcount Job.
         DataSet<String> words = env.readTextFile(defaultVolume + "/words.txt",
                 "UTF-8");
         DataSet<String> filtered = words.filter(new FilterFunction<String>() {
@@ -51,12 +53,24 @@ public class DataLocalityTest {
 
         });
 
-        filtered.print();
+        DataSet<Tuple2<String, Integer>> counts = filtered
+                .map(new MapFunction<String, Tuple2<String, Integer>>() {
+
+                    private static final long serialVersionUID = 7917635531979595929L;
+
+                    @Override
+                    public Tuple2<String, Integer> map(String arg0)
+                            throws Exception {
+                        return new Tuple2<String, Integer>(arg0, 1);
+                    }
+
+                }).groupBy(0).sum(1);
+
+        counts.print();
 
         File file = new File(workingDirectory + "/words.txt");
         System.out.println(file.length() + " bytes");
         file.delete();
 
     }
-
 }
