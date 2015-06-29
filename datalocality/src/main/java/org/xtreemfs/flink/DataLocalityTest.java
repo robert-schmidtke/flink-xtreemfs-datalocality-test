@@ -1,5 +1,6 @@
 package org.xtreemfs.flink;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.util.Random;
 
@@ -51,6 +52,11 @@ public class DataLocalityTest {
         });
 
         filtered.print();
+
+        File file = new File(workingDirectory + "/words.txt");
+        System.out.println(file.length() + " bytes");
+        file.delete();
+
     }
 
 }
