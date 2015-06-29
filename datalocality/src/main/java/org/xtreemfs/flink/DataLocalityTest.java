@@ -12,8 +12,6 @@ public class DataLocalityTest {
         DataSet<String> text = env.fromElements("Flink", "XtreemFS",
                 "Data Locality", "Test");
         text.print();
-
-        env.execute("Flink XtreemFS Data Locality Test");
     }
 
 }
