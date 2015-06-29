@@ -8,7 +8,7 @@ import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 
 public class DataLocalityTest {
 
@@ -53,18 +53,19 @@ public class DataLocalityTest {
 
         });
 
-        DataSet<Tuple2<String, Integer>> counts = filtered
-                .map(new MapFunction<String, Tuple2<String, Integer>>() {
+        DataSet<Tuple3<String, Integer, String>> counts = filtered
+                .map(new MapFunction<String, Tuple3<String, Integer, String>>() {
 
                     private static final long serialVersionUID = 7917635531979595929L;
 
                     @Override
-                    public Tuple2<String, Integer> map(String arg0)
+                    public Tuple3<String, Integer, String> map(String arg0)
                             throws Exception {
-                        return new Tuple2<String, Integer>(arg0, 1);
+                        return new Tuple3<String, Integer, String>(arg0, 1,
+                                System.getenv("HOSTNAME"));
                     }
 
-                }).groupBy(0).sum(1);
+                }).groupBy(2).sum(1);
 
         counts.print();
 
