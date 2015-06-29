@@ -13,7 +13,7 @@ public class DataLocalityTest {
         final ExecutionEnvironment env = ExecutionEnvironment
                 .getExecutionEnvironment();
 
-        final String workingDirectory = System.getenv("WORKD");
+        final String workingDirectory = System.getenv("WORK");
         if (workingDirectory == null) {
             System.err
                     .println("$WORK must point to an XtreemFS volume mount point (as a file system path).");
