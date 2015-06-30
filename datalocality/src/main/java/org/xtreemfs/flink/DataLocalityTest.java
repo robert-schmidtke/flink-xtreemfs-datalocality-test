@@ -1,16 +1,12 @@
 package org.xtreemfs.flink;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.PrintWriter;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.aggregation.Aggregations;
-import org.apache.flink.api.java.io.TypeSerializerInputFormat;
 import org.apache.flink.api.java.tuple.Tuple3;
 
 public class DataLocalityTest {
@@ -48,33 +44,32 @@ public class DataLocalityTest {
         }
 
         // Generate enough data to distribute among the OSDs.
-        DataOutputStream out = new DataOutputStream(new BufferedOutputStream(
-                new FileOutputStream(workingDirectory + "/data.bin")));
+        PrintWriter out = new PrintWriter(workingDirectory + "/words.txt",
+                "UTF-8");
 
         // Each entry is 8 bytes and we want 128 kilobytes per OSD.
         for (int i = 0; i < osdCount * 128 * 1024 / 8; ++i) {
             // Always write the same value to each OSD.
-            out.writeLong((i / (128 * 1024 / 8)) % osdCount);
+            out.println(1000000 + (i / (128 * 1024 / 8)) % osdCount);
         }
         out.close();
 
         // Use words as input to Flink wordcount Job.
-        DataSet<Long> input = env.readFile(new TypeSerializerInputFormat<Long>(
-                BasicTypeInfo.LONG_TYPE_INFO), workingDirectory + "/data.bin");
+        DataSet<String> input = env.readTextFile(workingDirectory
+                + "/words.txt", "UTF-8");
 
-        DataSet<Long> filtered = input;
-        // .filter(new FilterFunction<Long>() {
-        //
-        // private static final long serialVersionUID = -7778608339455035028L;
-        //
-        // @Override
-        // public boolean filter(Long arg0) throws Exception {
-        // return arg0 % 2 == 0;
-        // }
-        //
-        // });
+        DataSet<Long> mapped = input.map(new MapFunction<String, Long>() {
 
-        DataSet<Tuple3<Long, Integer, String>> counts = filtered
+            private static final long serialVersionUID = 4902651910843421516L;
+
+            @Override
+            public Long map(String arg0) throws Exception {
+                return Long.parseLong(arg0);
+            }
+
+        });
+
+        DataSet<Tuple3<Long, Integer, String>> counts = mapped
                 .map(new MapFunction<Long, Tuple3<Long, Integer, String>>() {
 
                     private static final long serialVersionUID = 7917635531979595929L;
@@ -92,10 +87,9 @@ public class DataLocalityTest {
         System.out.println(input.count() + " --> " + counts.count());
         counts.print();
 
-        File file = new File(workingDirectory + "/data.bin");
+        File file = new File(workingDirectory + "/words.txt");
         System.out.println(file.length() + " bytes");
         file.delete();
 
     }
-
 }
