@@ -1,13 +1,16 @@
 package org.xtreemfs.flink;
 
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
-import java.io.PrintWriter;
-import java.util.Random;
+import java.io.FileOutputStream;
 
-import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.aggregation.Aggregations;
+import org.apache.flink.api.java.io.TypeSerializerInputFormat;
 import org.apache.flink.api.java.tuple.Tuple3;
 
 public class DataLocalityTest {
@@ -15,6 +18,20 @@ public class DataLocalityTest {
     public static void main(String[] args) throws Exception {
         final ExecutionEnvironment env = ExecutionEnvironment
                 .getExecutionEnvironment();
+
+        if (args.length != 1) {
+            System.err
+                    .println("Invoke with one positional parameter: the number of OSDs.");
+            System.exit(1);
+        }
+
+        int osdCount = 0;
+        try {
+            osdCount = Integer.parseInt(args[0]);
+        } catch (NumberFormatException e) {
+            System.err.println("Bad number of OSD argument: " + args[0]);
+            System.exit(1);
+        }
 
         final String workingDirectory = System.getenv("WORK");
         if (workingDirectory == null) {
@@ -30,48 +47,54 @@ public class DataLocalityTest {
             System.exit(1);
         }
 
-        // Generate 256kB of data to distribute among the two OSDs.
-        Random random = new Random(0);
-        PrintWriter writer = new PrintWriter(workingDirectory + "/words.txt",
-                "UTF-8");
-        for (int i = 0; i < 32768; ++i) {
-            writer.println("Word" + (100 + random.nextInt(100)));
+        // Generate enough data to distribute among the OSDs.
+        DataOutputStream out = new DataOutputStream(new BufferedOutputStream(
+                new FileOutputStream(workingDirectory + "/data.bin")));
+
+        // Each entry is 8 bytes and we want 128 kilobytes per OSD.
+        for (int i = 0; i < osdCount * 128 * 1024 / 8; ++i) {
+            // Always write the same value to each OSD.
+            out.writeLong((i / (128 * 1024 / 8)) % osdCount);
         }
-        writer.close();
+        out.close();
 
         // Use words as input to Flink wordcount Job.
-        DataSet<String> words = env.readTextFile(defaultVolume + "/words.txt",
-                "UTF-8");
-        DataSet<String> filtered = words.filter(new FilterFunction<String>() {
+        DataSet<Long> input = env.readFile(new TypeSerializerInputFormat<Long>(
+                BasicTypeInfo.LONG_TYPE_INFO), workingDirectory + "/data.bin");
 
-            private static final long serialVersionUID = -7778608339455035028L;
+        DataSet<Long> filtered = input;
+        // .filter(new FilterFunction<Long>() {
+        //
+        // private static final long serialVersionUID = -7778608339455035028L;
+        //
+        // @Override
+        // public boolean filter(Long arg0) throws Exception {
+        // return arg0 % 2 == 0;
+        // }
+        //
+        // });
 
-            @Override
-            public boolean filter(String arg0) throws Exception {
-                return arg0.endsWith("5");
-            }
-
-        });
-
-        DataSet<Tuple3<String, Integer, String>> counts = filtered
-                .map(new MapFunction<String, Tuple3<String, Integer, String>>() {
+        DataSet<Tuple3<Long, Integer, String>> counts = filtered
+                .map(new MapFunction<Long, Tuple3<Long, Integer, String>>() {
 
                     private static final long serialVersionUID = 7917635531979595929L;
 
                     @Override
-                    public Tuple3<String, Integer, String> map(String arg0)
+                    public Tuple3<Long, Integer, String> map(Long arg0)
                             throws Exception {
-                        return new Tuple3<String, Integer, String>(arg0, 1,
+                        return new Tuple3<Long, Integer, String>(arg0, 1,
                                 System.getenv("HOSTNAME"));
                     }
 
-                }).groupBy(2).sum(1);
+                }).groupBy(2).aggregate(Aggregations.MAX, 1)
+                .aggregate(Aggregations.MAX, 0);
 
         counts.print();
 
-        File file = new File(workingDirectory + "/words.txt");
+        File file = new File(workingDirectory + "/data.bin");
         System.out.println(file.length() + " bytes");
         file.delete();
 
     }
+
 }
