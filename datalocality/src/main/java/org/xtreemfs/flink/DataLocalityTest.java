@@ -6,11 +6,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.aggregation.Aggregations;
-import org.apache.flink.api.java.io.TypeSerializerInputFormat;
 import org.apache.flink.api.java.tuple.Tuple3;
 
 public class DataLocalityTest {
@@ -59,8 +57,8 @@ public class DataLocalityTest {
         out.close();
 
         // Use words as input to Flink wordcount Job.
-        DataSet<Long> input = env.readFile(new TypeSerializerInputFormat<Long>(
-                BasicTypeInfo.LONG_TYPE_INFO), workingDirectory + "/data.bin");
+        DataSet<Long> input = env.readFileOfPrimitives(workingDirectory
+                + "/data.bin", Long.class);
 
         DataSet<Long> filtered = input;
         // .filter(new FilterFunction<Long>() {
