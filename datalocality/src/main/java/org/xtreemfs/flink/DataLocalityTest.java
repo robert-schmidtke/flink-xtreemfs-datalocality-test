@@ -83,7 +83,7 @@ public class DataLocalityTest {
 
                 }).groupBy(2);
 
-        DataSet<Tuple3<Long, Integer, String>> result = counts.sum(1).andMax(0);
+        DataSet<Tuple3<Long, Integer, String>> result = counts.sum(1).andSum(0);
 
         System.out.println(input.count() + " --> " + result.count());
         result.print();
