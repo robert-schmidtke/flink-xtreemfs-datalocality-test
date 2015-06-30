@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.aggregation.Aggregations;
+import org.apache.flink.api.java.operators.UnsortedGrouping;
 import org.apache.flink.api.java.tuple.Tuple3;
 
 public class DataLocalityTest {
@@ -69,8 +69,8 @@ public class DataLocalityTest {
 
         });
 
-        DataSet<Tuple3<Long, Integer, String>> counts = mapped
-                .map(new MapFunction<Long, Tuple3<Long, Integer, String>>() {
+        UnsortedGrouping<Tuple3<Long, Integer, String>> counts = mapped.map(
+                new MapFunction<Long, Tuple3<Long, Integer, String>>() {
 
                     private static final long serialVersionUID = 7917635531979595929L;
 
@@ -81,11 +81,12 @@ public class DataLocalityTest {
                                 System.getenv("HOSTNAME"));
                     }
 
-                }).groupBy(2).aggregate(Aggregations.SUM, 1)
-                .aggregate(Aggregations.MAX, 0);
+                }).groupBy(2);
 
-        System.out.println(input.count() + " --> " + counts.count());
-        counts.print();
+        DataSet<Tuple3<Long, Integer, String>> result = counts.sum(1).andMax(0);
+
+        System.out.println(input.count() + " --> " + result.count());
+        result.print();
 
         File file = new File(workingDirectory + "/words.txt");
         System.out.println(file.length() + " bytes");
