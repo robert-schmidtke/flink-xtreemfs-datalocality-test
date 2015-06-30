@@ -89,6 +89,7 @@ public class DataLocalityTest {
                 }).groupBy(2).aggregate(Aggregations.SUM, 1)
                 .aggregate(Aggregations.MAX, 0);
 
+        System.out.println(input.count() + " --> " + counts.count());
         counts.print();
 
         File file = new File(workingDirectory + "/data.bin");
