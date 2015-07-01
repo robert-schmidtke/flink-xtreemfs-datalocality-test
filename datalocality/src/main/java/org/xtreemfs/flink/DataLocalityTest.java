@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple4;
 
 public class DataLocalityTest {
 
@@ -57,19 +57,20 @@ public class DataLocalityTest {
         DataSet<String> input = env.readTextFile(workingDirectory
                 + "/words.txt", "UTF-8");
 
-        DataSet<Tuple2<String, Long>> counts = input
-                .map(new MapFunction<String, Tuple2<String, Long>>() {
+        DataSet<Tuple4<String, Long, Long, Long>> counts = input
+                .map(new MapFunction<String, Tuple4<String, Long, Long, Long>>() {
 
                     private static final long serialVersionUID = 7917635531979595929L;
 
                     @Override
-                    public Tuple2<String, Long> map(String arg0)
+                    public Tuple4<String, Long, Long, Long> map(String arg0)
                             throws Exception {
-                        return new Tuple2<String, Long>(System
-                                .getenv("HOSTNAME"), 1L);
+                        Long arg = Long.parseLong(arg0);
+                        return new Tuple4<String, Long, Long, Long>(System
+                                .getenv("HOSTNAME"), 1L, arg, arg);
                     }
 
-                }).groupBy(0).sum(1);
+                }).groupBy(0).sum(1).min(2).andMax(3);
 
         System.out.println(input.count() + " --> " + counts.count());
         counts.print();
