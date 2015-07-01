@@ -6,8 +6,7 @@ import java.io.PrintWriter;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.UnsortedGrouping;
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple2;
 
 public class DataLocalityTest {
 
@@ -54,42 +53,30 @@ public class DataLocalityTest {
         }
         out.close();
 
-        // Use words as input to Flink wordcount Job.
+        // Use words as input to Flink "wordcount" Job.
         DataSet<String> input = env.readTextFile(workingDirectory
                 + "/words.txt", "UTF-8");
 
-        DataSet<Long> mapped = input.map(new MapFunction<String, Long>() {
-
-            private static final long serialVersionUID = 4902651910843421516L;
-
-            @Override
-            public Long map(String arg0) throws Exception {
-                return Long.parseLong(arg0);
-            }
-
-        });
-
-        UnsortedGrouping<Tuple3<Long, Integer, String>> counts = mapped.map(
-                new MapFunction<Long, Tuple3<Long, Integer, String>>() {
+        DataSet<Tuple2<String, Long>> counts = input
+                .map(new MapFunction<String, Tuple2<String, Long>>() {
 
                     private static final long serialVersionUID = 7917635531979595929L;
 
                     @Override
-                    public Tuple3<Long, Integer, String> map(Long arg0)
+                    public Tuple2<String, Long> map(String arg0)
                             throws Exception {
-                        return new Tuple3<Long, Integer, String>(arg0, 1,
-                                System.getenv("HOSTNAME"));
+                        return new Tuple2<String, Long>(System
+                                .getenv("HOSTNAME"), 1L);
                     }
 
-                }).groupBy(2);
+                }).groupBy(0).sum(1);
 
-        DataSet<Tuple3<Long, Integer, String>> result = counts.sum(1).andSum(0);
-
-        System.out.println(input.count() + " --> " + result.count());
-        result.print();
+        System.out.println(input.count() + " --> " + counts.count());
+        counts.print();
 
         File file = new File(workingDirectory + "/words.txt");
-        System.out.println(file.length() + " bytes");
+        System.out.println(file.length() + " bytes ("
+                + (osdCount * 128 * 1024 / 8) + " 8-byte strings)");
         file.delete();
 
     }
