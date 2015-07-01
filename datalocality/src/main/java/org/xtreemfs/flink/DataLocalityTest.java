@@ -70,7 +70,7 @@ public class DataLocalityTest {
                                 .getenv("HOSTNAME"), 1L, arg, arg);
                     }
 
-                }).groupBy(0).sum(1).min(2).andMax(3);
+                }).groupBy(0).min(2).andMax(3).andSum(1);
 
         System.out.println(input.count() + " --> " + counts.count());
         counts.print();
