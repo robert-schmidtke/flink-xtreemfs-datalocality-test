@@ -14,9 +14,9 @@ public class DataLocalityTest {
         final ExecutionEnvironment env = ExecutionEnvironment
                 .getExecutionEnvironment();
 
-        if (args.length != 1) {
+        if (args.length != 2) {
             System.err
-                    .println("Invoke with one positional parameter: the number of OSDs.");
+                    .println("Invoke with two positional parameters: the number of OSDs, the number of stripes per OSD.");
             System.exit(1);
         }
 
@@ -25,6 +25,15 @@ public class DataLocalityTest {
             osdCount = Integer.parseInt(args[0]);
         } catch (NumberFormatException e) {
             System.err.println("Bad number of OSD argument: " + args[0]);
+            System.exit(1);
+        }
+
+        int stripesPerOsd = 0;
+        try {
+            stripesPerOsd = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.err.println("Bad number of stripes per OSD argument: "
+                    + args[1]);
             System.exit(1);
         }
 
@@ -47,7 +56,7 @@ public class DataLocalityTest {
                 "UTF-8");
 
         // Each entry is 8 bytes and we want 128 kilobytes per OSD.
-        for (int i = 0; i < osdCount * 128 * 1024 / 8; ++i) {
+        for (int i = 0; i < stripesPerOsd * osdCount * 128 * 1024 / 8; ++i) {
             // Always write the same value to each OSD.
             out.println(1000000 + (i / (128 * 1024 / 8)) % osdCount);
         }
@@ -77,7 +86,8 @@ public class DataLocalityTest {
 
         File file = new File(workingDirectory + "/words.txt");
         System.out.println(file.length() + " bytes ("
-                + (osdCount * 128 * 1024 / 8) + " 8-byte strings)");
+                + (stripesPerOsd * osdCount * 128 * 1024 / 8)
+                + " 8-byte strings)");
         file.delete();
 
     }
