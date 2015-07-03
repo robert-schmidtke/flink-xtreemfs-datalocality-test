@@ -63,7 +63,7 @@ public class DataLocalityTest {
         out.close();
 
         // Use words as input to Flink "wordcount" Job.
-        DataSet<String> input = env.readTextFile(workingDirectory
+        DataSet<String> input = env.readTextFile(defaultVolume
                 + "/words.txt", "UTF-8");
 
         DataSet<Tuple4<String, Long, Long, Long>> counts = input
