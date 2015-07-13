@@ -14,9 +14,9 @@ public class DataLocalityTest {
         final ExecutionEnvironment env = ExecutionEnvironment
                 .getExecutionEnvironment();
 
-        if (args.length != 2) {
+        if (args.length != 3) {
             System.err
-                    .println("Invoke with two positional parameters: the number of OSDs, the number of stripes per OSD.");
+                    .println("Invoke with two positional parameters: the number of OSDs, the number of stripes per OSD, the stripe size in kb.");
             System.exit(1);
         }
 
@@ -35,6 +35,14 @@ public class DataLocalityTest {
             System.err.println("Bad number of stripes per OSD argument: "
                     + args[1]);
             System.exit(1);
+        }
+        
+        int stripeSize = 0;
+        try {
+        	stripeSize = Integer.parseInt(args[2]);
+        } catch(NumberFormatException e) {
+        	System.err.println("Bad number of stripe size argument: " + args[2]);
+        	System.exit(1);
         }
 
         final String workingDirectory = System.getenv("WORK");
@@ -55,10 +63,10 @@ public class DataLocalityTest {
         PrintWriter out = new PrintWriter(workingDirectory + "/words.txt",
                 "UTF-8");
 
-        // Each entry is 8 bytes and we want 128 kilobytes per OSD.
-        for (int i = 0; i < stripesPerOsd * osdCount * 128 * 1024 / 8; ++i) {
+        // Each entry is 8 bytes and we want stripeSize kilobytes per OSD.
+        for (int i = 0; i < stripesPerOsd * osdCount * stripeSize * 1024 / 8; ++i) {
             // Always write the same value to each OSD.
-            out.println(1000000 + (i / (128 * 1024 / 8)) % osdCount);
+            out.println(1000000 + (i / (stripeSize * 1024 / 8)) % osdCount);
         }
         out.close();
 
@@ -86,7 +94,7 @@ public class DataLocalityTest {
 
         File file = new File(workingDirectory + "/words.txt");
         System.out.println(file.length() + " bytes ("
-                + (stripesPerOsd * osdCount * 128 * 1024 / 8)
+                + (stripesPerOsd * osdCount * stripeSize * 1024 / 8)
                 + " 8-byte strings)");
         file.delete();
 
